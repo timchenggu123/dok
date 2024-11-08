@@ -14,16 +14,17 @@ class Database():
     def insert_hako(self, name, image, commands, docker_file):
         cur = self.conn.cursor()
         cur.execute(f"INSERT INTO hako VALUES ('{name}', '{image}','{commands}', '{docker_file}')")
-        self.conn.commit
+        self.conn.commit()
 
     def select_hako(self, name):
         cur = self.conn.cursor()
         cur.execute(f"SELECT * FROM hako WHERE name = '{name}'")
         return cur.fetchone()
     
-    def delete_hako(self, name):
+    def remove_hako(self, name):
         cur = self.conn.cursor()
         cur.execute(f"DELETE FROM hako WHERE name = '{name}'")
+        self.conn.commit()
         
 
 
