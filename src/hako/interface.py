@@ -18,6 +18,13 @@ def parse_yaml(obj, name):
     service["container_name"] = get_container_name(name)
     if not HAKO_MAPPING_DIR in service["volumes"]:
         service["volumes"].append(f"/:/{HAKO_MAPPING_DIR}")
+    paths = []
+    for path in service["volumes"]:
+        host_path, container_path = path.split(":")
+        host_path = os.path.abspath(host_path)
+        new_path = f"{host_path}:{container_path}"
+        paths.append(new_path)
+    service["volumes"] = paths
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     service["user"] = f"{uid}:{gid}"
@@ -45,7 +52,13 @@ def docker_compose_create_container(file_path, name):
         sleep(0.2)
         animation.update()
     if handle.poll() < 0:
-        err=handle.stderr.read().decode("utf-8").strip()
+        err=handle.stderr.read().decode("utf-8")
+        print(f"Failed to create container from yaml file...")
+        print(f"Error:")
+        print(err)
+        sys.exit(1)
+    if not docker_is_container_running(name):
+        err=handle.stdout.read().decode("utf-8")
         print(f"Failed to create container from yaml file...")
         print(f"Error:")
         print(err)
