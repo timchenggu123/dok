@@ -40,7 +40,7 @@ class StateMachine():
     def create_hako_from_image(self, args):
         image = args.image
         name  = args.name
-        docker_args = args.args
+        docker_args = args.run_args
         docker_command = "sleep infinity"
         docker_create_container(name, image, docker_args, docker_command)
         self.db.insert_hako(name, image, docker_args, docker_command) 

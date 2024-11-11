@@ -56,61 +56,18 @@ def save_yaml(obj, name):
         yaml.safe_dump(obj, f)
     return filepath
 
-def docker_compose_create_container(file_path, name):
-    cmd = ["docker", "compose"]
-    cmd.extend(["-f", f"{file_path}"])
-    cmd.extend(["up", "-d"])
-
-    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE)
-    animation = WaitingAnimation(f"Creating the container for '{name}'")
-    animation.update()
-    while handle.poll() is None:
-        sleep(0.2)
-        animation.update()
-    if handle.poll() < 0:
-        err=handle.stderr.read().decode("utf-8")
-        print(f"Failed to create container from yaml file...")
-        print(f"Error:")
-        print(err)
-        sys.exit(1)
-    if not docker_is_container_running(name):
-        err=handle.stdout.read().decode("utf-8")
-        print(f"Failed to create container from yaml file...")
-        print(f"Error:")
-        print(err)
-        sys.exit(1)
-    animation.finish("success!")
-
-def docker_create_container(name, image, docker_args, docker_command):
-    cmd = ["docker", "run"]
+def docker_container_exists(name):
+    cmd = ["docker", "ps", "-a"]
     container_name = get_container_name(name)
-    cmd.extend(["--name", f"{container_name}"])
-    cmd.extend(["--volume", "/:/hakomappingdir"])
+    handle = sb.Popen(cmd, stdout=sb.PIPE)
+    handle.wait()
+    ret=handle.stdout.read().decode("utf-8").strip().split("\n")
+    for line in ret:
+        if container_name == line.split()[-1]:
+            return True
+    return False
 
-    uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
-    gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
-    cmd.extend(["--user", f"{uid}:{gid}"])
-
-    cmd.extend(shlex.split(docker_args.strip()))
-    cmd.extend(["-t", f"{image}"])
-    cmd.extend(shlex.split(docker_command.strip()))
-
-    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
-    animation = WaitingAnimation("Creating hako")
-    animation.update()
-    is_running = docker_is_container_running(name)
-    is_finished = handle.poll()
-    while not is_running and is_finished is None:
-        sleep(0.2)
-        animation.update()
-        is_running = docker_is_container_running(name)
-        is_finished = handle.poll()
-    if is_finished:
-        err = handle.stderr.read().decode("utf-8")
-        print("Encountered  error trying to create hako: \n", err)
-        sys.exit(-1)
-    animation.finish("success!")
-
+    
 def docker_is_container_running(name):
     cmd = ["docker", "ps"]
     container_name = get_container_name(name)
@@ -150,6 +107,81 @@ def docker_remove_container(name):
         animation.update()
     animation.finish("success!")
 
+def docker_compose_create_container(file_path, name):
+    if docker_container_exists(name):
+        yes = input(f"Found conflicting container. Do you want to remove the container <{get_container_name(name)}> and retry? [Y/N]")
+        if yes.lower() == "y":
+            docker_remove_container(name)
+            docker_compose_create_container(file_path, name)
+            return
+        print("aborted.") 
+        sys.exit(-1)
+    cmd = ["docker", "compose"]
+    cmd.extend(["-f", f"{file_path}"])
+    cmd.extend(["up", "-d"])
+
+    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE)
+    animation = WaitingAnimation(f"Creating the container for '{name}'")
+    animation.update()
+    while handle.poll() is None:
+        sleep(0.2)
+        animation.update()
+    if handle.poll() < 0:
+        err=handle.stderr.read().decode("utf-8")
+        print(f"Failed to create container from yaml file...")
+        print(f"Error:")
+        print(err)
+        sys.exit(1)
+    if not docker_is_container_running(name):
+        err=handle.stdout.read().decode("utf-8")
+        print(f"Failed to create container from yaml file...")
+        print(f"Error:")
+        print(err)
+        print("Cleaning up...")
+        if docker_container_exists(name): docker_remove_container(name)
+        sys.exit(1)
+    animation.finish("success!")
+
+def docker_create_container(name, image, docker_args, docker_command):
+    if docker_container_exists(name):
+        yes = input(f"Found conflicting container. Do you want to remove the container <{get_container_name(name)}> and retry? [Y/N]")
+        if yes.lower() == "y":
+            docker_remove_container(name)
+            docker_create_container(name, image, docker_args, docker_command)
+            return
+        print("aborted")
+        sys.exit(-1)
+    cmd = ["docker", "run"]
+    container_name = get_container_name(name)
+    cmd.extend(["--name", f"{container_name}"])
+    cmd.extend(["--volume", "/:/hakomappingdir"])
+
+    uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
+    gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
+    cmd.extend(["--user", f"{uid}:{gid}"])
+
+    cmd.extend(shlex.split(docker_args.strip()))
+    cmd.extend(["-t", f"{image}"])
+    cmd.extend(shlex.split(docker_command.strip()))
+
+    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
+    animation = WaitingAnimation("Creating hako")
+    animation.update()
+    is_running = docker_is_container_running(name)
+    is_finished = handle.poll()
+    while not is_running and is_finished is None:
+        sleep(0.2)
+        animation.update()
+        is_running = docker_is_container_running(name)
+        is_finished = handle.poll()
+    if is_finished:
+        err = handle.stderr.read().decode("utf-8")
+        print("Failed trying to create container: \n Error: \n", err)
+        print("Cleaning up...")
+        if docker_container_exists(name): docker_remove_container(name)
+        sys.exit(-1)
+    animation.finish("success!")
+
 def docker_start_container(name):
     if docker_is_container_running(name):
         return
@@ -173,7 +205,6 @@ def docker_attach_container(name):
     cmd = ["docker", "exec", "-it", container_name]
     pwd = os.path.abspath(os.curdir)
     hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
-    print(hako_pwd)
     cmd.extend(shlex.split(f"/bin/bash -c 'cd {hako_pwd} && bash'"))
     sb.run(cmd)
 
