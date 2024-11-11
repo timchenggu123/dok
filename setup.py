@@ -12,6 +12,9 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     python_requires='>=3.8',
+    install_requires=[
+        "pyyaml"
+    ],
     package_dir={
         "hako": "src/hako"
     },

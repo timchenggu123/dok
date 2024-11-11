@@ -1,10 +1,9 @@
-
 class WaitingAnimation():
     def __init__(self, base=""):
         self.counter = 1
         self.base = base
         self.buffer = ""
-        
+
     def update(self):
         self.clear()
         self.buffer = self.base + "."*self.counter 
@@ -22,3 +21,4 @@ class WaitingAnimation():
 
     def finish(self, s=""):
         print(self.buffer + s, flush=True)
+

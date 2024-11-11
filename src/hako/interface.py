@@ -1,13 +1,57 @@
 import subprocess as sb
-import os, sys
+import os, sys, shlex
 from hako.utils import *
 from time import sleep
+import yaml
 
 HAKO_MAPPING_DIR="hakomappingdir"
+HAKO_YAML_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_container_name(name):
     return f"hako-{name}"
-    
+
+def parse_yaml(obj, name):
+    if len(obj['services'].items()) > 1:
+        print("Multiple services found in the docker compose file. Please ensure there is only one.")
+        sys.exit(-1)
+    service = obj["services"][list(obj['services'].items())[0][0]]
+    service["container_name"] = get_container_name(name)
+    if not HAKO_MAPPING_DIR in service["volumes"]:
+        service["volumes"].append(f"/:/{HAKO_MAPPING_DIR}")
+    uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
+    gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
+    service["user"] = f"{uid}:{gid}"
+    return obj
+
+def save_yaml(obj, name):
+    dir = HAKO_YAML_DIR
+    yaml_dir = os.path.join(dir, "docker_compose")
+    if not os.path.exists(yaml_dir):
+        os.mkdir(yaml_dir)
+    filepath = os.path.join(yaml_dir, f"{name}.yml")
+    with open(filepath, "w") as f:
+        yaml.safe_dump(obj, f)
+    return filepath
+
+def docker_compose_create_container(file_path, name):
+    cmd = ["docker", "compose"]
+    cmd.extend(["-f", f"{file_path}"])
+    cmd.extend(["up", "-d"])
+
+    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE)
+    animation = WaitingAnimation(f"Creating the container for '{name}'")
+    animation.update()
+    while handle.poll() is None:
+        sleep(0.2)
+        animation.update()
+    if handle.poll() < 0:
+        err=handle.stderr.read().decode("utf-8").strip()
+        print(f"Failed to create container from yaml file...")
+        print(f"Error:")
+        print(err)
+        sys.exit(1)
+    animation.finish("success!")
+
 def docker_create_container(name, image, docker_args, docker_command):
     cmd = ["docker", "run"]
     container_name = get_container_name(name)
@@ -18,10 +62,10 @@ def docker_create_container(name, image, docker_args, docker_command):
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     cmd.extend(["--user", f"{uid}:{gid}"])
 
-    cmd.extend(docker_args.strip().split())
+    cmd.extend(shlex.split(docker_args.strip()))
     cmd.extend(["-t", f"{image}"])
-    cmd.extend(docker_command.strip().split())
-    
+    cmd.extend(shlex.split(docker_command.strip()))
+
     handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
     animation = WaitingAnimation("Creating hako")
     animation.update()
@@ -76,6 +120,35 @@ def docker_remove_container(name):
         sleep(0.2)
         animation.update()
     animation.finish("success!")
+
+def docker_start_container(name):
+    if docker_is_container_running(name):
+        return
+    container_name = get_container_name(name)
+    cmd = ["docker", "start", container_name]
+    handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
+    animation = WaitingAnimation("Activating container")
+    animation.update()
+    while handle.poll() is None:
+        sleep(0.2)
+        animation.update()
+    if handle.poll() < 0:
+        print("\nError trying to start docker container. Was it accidentally removed? Try remove the hako and create it again.")
+        print("Error:")
+        err = handle.stderr.read().decode("utf-8")
+        print(err)
+    animation.finish("success!")
+
+def docker_attach_container(name):
+    container_name = get_container_name(name)
+    cmd = ["docker", "exec", "-it", container_name]
+    pwd = os.path.abspath(os.curdir)
+    hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
+    print(hako_pwd)
+    cmd.extend(shlex.split(f"/bin/bash -c 'cd {hako_pwd} && bash'"))
+    sb.run(cmd)
+
+    
     
     
     

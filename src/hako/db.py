@@ -10,6 +10,7 @@ class Database():
     def _init_db(self):
         cur = self.conn.cursor()
         cur.execute("CREATE TABLE if not exists hako(name, image, commands, docker_file)")
+        cur.execute("CREATE TABLE if not exists active_hako(name)")
     
     def insert_hako(self, name, image, commands, docker_file):
         cur = self.conn.cursor()
@@ -25,10 +26,20 @@ class Database():
         cur = self.conn.cursor()
         cur.execute(f"DELETE FROM hako WHERE name = '{name}'")
         self.conn.commit()
-        
-
-
-
     
-
-
+    def select_active_hako(self):
+        cur = self.conn.cursor()
+        cur.execute(f"SELECT * FROM active_hako")
+        res = cur.fetchone()
+        return res[-1] if res else None
+    
+    def replace_active_hako(self, name):
+        cur = self.conn.cursor()
+        cur.execute(f"DELETE FROM active_hako")
+        cur.execute(f"INSERT INTO active_hako VALUES ('{name}')")
+        self.conn.commit()
+    
+    def deactivate_hako(self):
+        cur = self.conn.cursor()
+        cur.execute(f"DELETE FROM active_hako")
+        self.conn.commit()
