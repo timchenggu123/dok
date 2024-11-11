@@ -16,7 +16,8 @@ def parse_yaml(obj, name):
         sys.exit(-1)
     service = obj["services"][list(obj['services'].items())[0][0]]
     service["container_name"] = get_container_name(name)
-    if not HAKO_MAPPING_DIR in service["volumes"]:
+
+    if not HAKO_MAPPING_DIR in service.get("volumes", []):
         service["volumes"].append(f"/:/{HAKO_MAPPING_DIR}")
     paths = []
     for path in service["volumes"]:
@@ -25,6 +26,21 @@ def parse_yaml(obj, name):
         new_path = f"{host_path}:{container_path}"
         paths.append(new_path)
     service["volumes"] = paths
+
+    build =  service.get("build", None)
+    if build and build["context"]:
+        context_path = build["context"]
+        build["context"] = os.path.abspath(context_path)
+    if build and build["dockerfile"]:
+        file_path = build["dockerfile"]
+        build["dockerfile"] = os.path.abspath(file_path)
+    
+    files = []
+    if service.get("env_file", None):
+        for file in service["env_file"]:
+            files.append(os.path.abspath(file))
+        service["env_file"] = files
+    
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     service["user"] = f"{uid}:{gid}"
