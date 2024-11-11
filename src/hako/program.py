@@ -30,12 +30,12 @@ class StateMachine():
         with open(p, "r") as f:
             obj = yaml.safe_load(f)
         print("Parsing docker-compose file")
-        obj = parse_yaml(obj, name)
+        obj = parse_yaml(obj, name, file_path)
         f = save_yaml(obj, name)
         print(f"Hako docker-compose file saved to {f}")
         docker_compose_create_container(f, name)
         self.db.insert_hako(name, "", "", docker_file=file_path)
-        print("success!")
+        print("finished!")
     
     def create_hako_from_image(self, args):
         image = args.image
@@ -43,7 +43,8 @@ class StateMachine():
         docker_args = args.run_args
         docker_command = "sleep infinity"
         docker_create_container(name, image, docker_args, docker_command)
-        self.db.insert_hako(name, image, docker_args, docker_command) 
+        self.db.insert_hako(name, image, docker_command, "")
+        print("finished!")
 
     def remove_hako(self, args):
         name = args.name
@@ -77,3 +78,15 @@ class StateMachine():
         if not docker_is_container_running(name):
             docker_start_container(name)
         docker_attach_container(name)
+    
+    def list_hako(self, args):
+        active_hako = self.db.select_active_hako()
+        active_hako = self.db.select_hako(active_hako)
+        hakos = self.db.select_all_hako()
+        print("Name\tStatus\tImage\tFile".expandtabs(16))
+        if not (active_hako is None):
+            print(f"{active_hako[0]}\tActive\t{active_hako[1]}\t{active_hako[-1]}".expandtabs(16))
+        for line in hakos:
+            if active_hako and line[0] == active_hako[0]:
+                continue
+            print(f"{line[0]}\tInactive\t{line[1]}\t{line[-1]}".expandtabs(16))

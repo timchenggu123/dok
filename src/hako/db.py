@@ -22,6 +22,11 @@ class Database():
         cur.execute(f"SELECT * FROM hako WHERE name = '{name}'")
         return cur.fetchone()
     
+    def select_all_hako(self):
+        cur = self.conn.cursor()
+        cur.execute(f"SELECT * FROM hako")
+        return cur.fetchall()
+    
     def remove_hako(self, name):
         cur = self.conn.cursor()
         cur.execute(f"DELETE FROM hako WHERE name = '{name}'")

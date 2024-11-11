@@ -26,6 +26,10 @@ def activate_attach_handle(args):
     program = StateMachine()
     program.activate_hako(args)
     program.attach_hako(args)
+
+def list_handle(args):
+    program = StateMachine()
+    program.list_hako(args)
     
 def main():
     parser = argparse.ArgumentParser(
@@ -42,7 +46,7 @@ def main():
     file_or_image = create_parser.add_mutually_exclusive_group()
     file_or_image.add_argument("-f", "--file", type = str, default = None, help="Specify a docker compose file to base the hako on.")
     file_or_image.add_argument("-i", "--image", type = str, default = None, help="Specify the docker image to base the hako on.")
-    create_parser.add_argument("--run-args", type=str, default=None, required=False, help = "Pass in the additional docker run arguments would you like to pass, enclosed in quotation marks. Only works with the -i --image option.")
+    create_parser.add_argument("--run-args", type=str, default="", required=False, help = "Pass in the additional docker run arguments would you like to pass, enclosed in quotation marks. Only works with the -i --image option.")
     create_parser.set_defaults(func=create_handle)
 
     remove_parser = subparsers.add_parser("remove", aliases=["rm"])
@@ -56,6 +60,9 @@ def main():
     activate_attach_parser=subparsers.add_parser("activate-attach", aliases=["at"])
     activate_attach_parser.add_argument("name", type=str, help="Name of the hako to use.")
     activate_attach_parser.set_defaults(func=activate_attach_handle)
+
+    list_parser=subparsers.add_parser("list", aliases=["l", "ls"], description="List all available hakos.")
+    list_parser.set_defaults(func=list_handle)
 
     args = parser.parse_args()
     args.func(args)

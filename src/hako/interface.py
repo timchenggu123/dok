@@ -10,7 +10,12 @@ HAKO_YAML_DIR = os.path.dirname(os.path.abspath(__file__))
 def get_container_name(name):
     return f"hako-{name}"
 
-def parse_yaml(obj, name):
+def rebase_path(base, rel):
+    path = os.path.join(base, rel)
+    return os.path.abspath(path)
+
+def parse_yaml(obj, name, yml_path):
+    wkdir = os.path.dirname(os.path.abspath(yml_path))
     if len(obj['services'].items()) > 1:
         print("Multiple services found in the docker compose file. Please ensure there is only one.")
         sys.exit(-1)
@@ -22,7 +27,7 @@ def parse_yaml(obj, name):
     paths = []
     for path in service["volumes"]:
         host_path, container_path = path.split(":")
-        host_path = os.path.abspath(host_path)
+        host_path = rebase_path(wkdir, host_path) 
         new_path = f"{host_path}:{container_path}"
         paths.append(new_path)
     service["volumes"] = paths
@@ -30,16 +35,27 @@ def parse_yaml(obj, name):
     build =  service.get("build", None)
     if build and build["context"]:
         context_path = build["context"]
-        build["context"] = os.path.abspath(context_path)
+        build["context"] = rebase_path(wkdir, context_path)
     if build and build["dockerfile"]:
         file_path = build["dockerfile"]
-        build["dockerfile"] = os.path.abspath(file_path)
+        build["dockerfile"] = rebase_path(wkdir, file_path)
     
     files = []
     if service.get("env_file", None):
         for file in service["env_file"]:
-            files.append(os.path.abspath(file))
+            files.append(rebase_path(wkdir, file))
         service["env_file"] = files
+    
+    entrypoint = service.get("entrypoint", [])
+    entrypoint.extend(["/bin/bash", "-c"])
+    command = service.get("command", "")
+    if type(command) == list:
+        command = " ".join(command)
+    if command:
+        print("WARNING: Found command field specified in the docker compose file. Hako recommends executing all default commands with the entrypoint.")
+    command = "\n".join([command, "\bin\bash -c \"sleep infinity\""])  
+    service["command"] = command
+    service["entrypoint"] = entrypoint
     
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
