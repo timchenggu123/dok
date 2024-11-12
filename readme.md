@@ -1,5 +1,5 @@
 # HAKO
-`hako` is a command line tool that helps streamline your workflow with containerized dev environments. Inspired by `conda`, `hako` wraps around `docker` and `docker-compose` to help you seamless swap between bare-metal and containerized environments.
+`hako` is a command line tool that helps streamline your workflow with containerized dev environments. Inspired by `conda`, `hako` wraps around `docker` and `docker-compose` to help you seamlessly swap between bare-metal and containerized environments.
 
 ## Installation
 ### Requirements:
