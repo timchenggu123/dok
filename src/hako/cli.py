@@ -40,7 +40,7 @@ def main():
     parser = argparse.ArgumentParser(
             prog = "hako", description="Quickly start your containerized dev environment."
             )
-    subparsers = parser.add_subparsers(title="Commands", dest="command", required=False)
+    subparsers = parser.add_subparsers(title="Commands", dest="command", required=True)
 
     activate_parser = subparsers.add_parser("activate", aliases=["a"])
     activate_parser.add_argument("name", default="", help="Name of the hako to use.")
@@ -71,7 +71,6 @@ def main():
 
     exec_parser=subparsers.add_parser("exec", aliases=["e"], description="Execute a single command in the active hako.")
     exec_parser.set_defaults(func=exec_handle)
-
     args, _ = parser.parse_known_args() 
     args.func(args)
 
