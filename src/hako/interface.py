@@ -15,6 +15,13 @@ def rebase_path(base, rel):
     return os.path.abspath(path)
 
 def parse_yaml(obj, name, yml_path):
+    def str_presenter(dumper, data):
+        if len(data.splitlines()) > 1:  # check for multiline string
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+    yaml.add_representer(str, str_presenter)
+    yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+
     wkdir = os.path.dirname(os.path.abspath(yml_path))
     if len(obj['services'].items()) > 1:
         print("Multiple services found in the docker compose file. Please ensure there is only one.")
@@ -53,8 +60,8 @@ def parse_yaml(obj, name, yml_path):
         command = " ".join(command)
     if command:
         print("WARNING: Found command field specified in the docker compose file. Hako recommends executing all default commands with the entrypoint.")
-    command = "\n".join([command, "\bin\bash -c \"sleep infinity\""])  
-    service["command"] = command
+    command = "\n".join([command, "/bin/bash -c \"sleep infinity\""])
+    service["command"] = [command]
     service["entrypoint"] = entrypoint
     
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
