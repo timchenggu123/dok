@@ -91,7 +91,7 @@ class StateMachine():
                 continue
             print(f"{line[0]}\tInactive\t{line[1]}\t{line[-1]}".expandtabs(16))
 
-    def hakoexec_hako(self, argv):
+    def exec_hako(self, argv):
         name = self.db.select_active_hako()
         if name is None:
             print("No hako is active currently. To learn about how to activate a hako, see")
