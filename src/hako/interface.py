@@ -207,6 +207,13 @@ def docker_create_container(name, image, docker_args, docker_command):
         sys.exit(-1)
     animation.finish("success!")
 
+def docker_get_shell(name):
+    container_name = get_container_name(name)
+    cmd = ["docker", "exec", "-i", container_name, "sh"]
+    handle = sb.Popen(cmd, stdin=sb.PIPE, stderr=sb.PIPE, stdout=sb.PIPE)
+    exe, _  = handle.communicate(input=b"command -v bash")
+    return exe.decode("utf-8").strip() if handle.poll() == 0 else "sh"
+    
 def docker_start_container(name):
     if docker_is_container_running(name):
         return
@@ -226,14 +233,22 @@ def docker_start_container(name):
     animation.finish("success!")
 
 def docker_attach_container(name):
+    shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
     pwd = os.path.abspath(os.curdir)
     hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
-    cmd.extend(shlex.split(f"/bin/bash -c 'cd {hako_pwd} && bash'"))
+    cmd.extend(shlex.split(f"{shell} -c 'cd {hako_pwd} && {shell}'"))
     sb.run(cmd)
-
     
-    
-    
-    
+def docker_exec_command(name, argv):
+    shell = docker_get_shell(name)
+    container_name = get_container_name(name)
+    cmd = ["docker", "exec", "-it", container_name]
+    pwd = os.path.abspath(os.curdir)
+    hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
+    print(argv)
+    print(shlex.join(argv))
+    command = shlex.join(argv)
+    cmd.extend([shell, "-c", f'cd {hako_pwd} && ' + command])
+    sb.run(cmd)

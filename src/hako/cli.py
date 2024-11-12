@@ -30,12 +30,17 @@ def activate_attach_handle(args):
 def list_handle(args):
     program = StateMachine()
     program.list_hako(args)
+
+def exec_handle(args):
+    program = StateMachine()
+    program.exec_hako(sys.argv[2:])
     
+
 def main():
     parser = argparse.ArgumentParser(
             prog = "hako", description="Quickly start your containerized dev environment."
             )
-    subparsers = parser.add_subparsers(title="Commands", dest="command", required=True)
+    subparsers = parser.add_subparsers(title="Commands", dest="command", required=False)
 
     activate_parser = subparsers.add_parser("activate", aliases=["a"])
     activate_parser.add_argument("name", default="", help="Name of the hako to use.")
@@ -49,7 +54,7 @@ def main():
     create_parser.add_argument("--run-args", type=str, default="", required=False, help = "Pass in the additional docker run arguments would you like to pass, enclosed in quotation marks. Only works with the -i --image option.")
     create_parser.set_defaults(func=create_handle)
 
-    remove_parser = subparsers.add_parser("remove", aliases=["rm"])
+    remove_parser = subparsers.add_parser("remove", aliases=["r"])
     remove_parser.add_argument("name", type=str, help="Name of the target hako to remove.")
     remove_parser.set_defaults(func=remove_handle)
 
@@ -61,10 +66,13 @@ def main():
     activate_attach_parser.add_argument("name", type=str, help="Name of the hako to use.")
     activate_attach_parser.set_defaults(func=activate_attach_handle)
 
-    list_parser=subparsers.add_parser("list", aliases=["l", "ls"], description="List all available hakos.")
+    list_parser=subparsers.add_parser("list", aliases=["l"], description="List all available hakos.")
     list_parser.set_defaults(func=list_handle)
 
-    args = parser.parse_args()
+    exec_parser=subparsers.add_parser("exec", aliases=["e"], description="Execute a single command in the active hako.")
+    exec_parser.set_defaults(func=exec_handle)
+
+    args, _ = parser.parse_known_args() 
     args.func(args)
 
 
