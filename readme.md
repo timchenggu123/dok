@@ -6,7 +6,7 @@ Docker is great. Using docker containers as dev environments is a brilliant idea
 
 Fine, maybe you are smart and organized, and you use `docker compose`, so it is all good and managed. But it still can be an annoying to configure `volumes`, `stdin`, `tty`, `user` everytime in the yaml, oh and don't forget to put a `/bin/bash -c "sleep infinity"` in the command to keep the container alive! After all the work, you still have to run `docker compose up -d && docker exec -it <name> /bin/bash` just to run it, then `cd` to the directory to finally get some work done. 
 
-Okay, maybe it is not that bad, but still, this can be much simpler. `hako` simplies the work you need to do to manage your dev environments; it merges multiple commands together and automatically add commonly use flags to the commands. It ensures containers do not auto exit and automatically select and attach to available shells with concise commands. It will even cd to a mounted directory for you! `hako` makes the experience of using docker images as dev much simpler. 
+Okay, maybe it is not that bad, but still, this can be much simpler. `hako` simplifies the work you need to do to manage your dev environments; it merges multiple commands together and automatically add commonly use flags to the commands. It ensures containers do not auto exit and automatically select and attach to available shells with concise commands. It will even cd to a mounted directory for you! `hako` makes the experience of using docker images as dev much simpler. 
 ## Installation
 ### Requirements:
 `docker` >= 27.0.0 and `python` >= 3.8
