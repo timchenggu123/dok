@@ -13,14 +13,14 @@ class StateMachine():
     def create_hako(self, args):
         name = args.name
         if self.db.select_hako(name):
-            raise NameError(f"Hako named '{name}' already exists")
+           print(f"Hako named '{name}' already exists")
+           sys.exit(-1)
         if args.image:
             self.create_hako_from_image(args) 
             return
         if args.file:
             self.create_hako_from_file(args)
             return
-        raise ValueError("Please specify an image.")
     
     def create_hako_from_file(self,args):
         name = args.name

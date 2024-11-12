@@ -54,16 +54,18 @@ def parse_yaml(obj, name, yml_path):
         service["env_file"] = files
     
     entrypoint = service.get("entrypoint", [])
-    entrypoint.extend(["/bin/bash", "-c"])
+    entrypoint.extend(["/bin/sh", "-c"])
     command = service.get("command", "")
     if type(command) == list:
         command = " ".join(command)
     if command:
         print("WARNING: Found command field specified in the docker compose file. Hako recommends executing all default commands with the entrypoint.")
-    command = "\n".join([command, "/bin/bash -c \"sleep infinity\""])
+    command = "\n".join([command, "/bin/bash"])
     service["command"] = [command]
     service["entrypoint"] = entrypoint
     
+    service["tty"] = True
+    service["stdin_open"] = True
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     service["user"] = f"{uid}:{gid}"
