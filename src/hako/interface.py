@@ -60,7 +60,7 @@ def parse_yaml(obj, name, yml_path):
         command = " ".join(command)
     if command:
         print("WARNING: Found command field specified in the docker compose file. Hako recommends executing all default commands with the entrypoint.")
-    command = "\n".join([command, "/bin/bash"])
+    command = "\n".join([command, "/bin/sh"])
     service["command"] = [command]
     service["entrypoint"] = entrypoint
     
