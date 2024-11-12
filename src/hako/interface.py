@@ -247,8 +247,6 @@ def docker_exec_command(name, argv):
     cmd = ["docker", "exec", "-it", container_name]
     pwd = os.path.abspath(os.curdir)
     hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
-    print(argv)
-    print(shlex.join(argv))
     command = shlex.join(argv)
     cmd.extend([shell, "-c", f'cd {hako_pwd} && ' + command])
     sb.run(cmd)
