@@ -91,7 +91,7 @@ class StateMachine():
                 continue
             print(f"{line[0]}\tInactive\t{line[1]}\t{line[-1]}".expandtabs(16))
 
-    def exec_hako(self, argv):
+    def hakoexec_hako(self, argv):
         name = self.db.select_active_hako()
         if name is None:
             print("No hako is active currently. To learn about how to activate a hako, see")
@@ -100,3 +100,11 @@ class StateMachine():
         if not docker_is_container_running(name):
             docker_start_container(name)
         docker_exec_command(name, argv)
+    
+    def show_active(self, args):
+        name = self.db.select_active_hako()
+        if name is None:
+            print("No hako is active currently. To learn about how to activate a hako, see")
+            print("     hako activate --help") 
+            return
+        print(name)
