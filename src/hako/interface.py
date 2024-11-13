@@ -158,9 +158,11 @@ def docker_compose_create_container(file_path, name):
         print(err)
         sys.exit(1)
     if not docker_is_container_running(name):
-        err=handle.stdout.read().decode("utf-8")
-        print(f"Failed to create container from yaml file...")
+        err=handle.stderr.read().decode("utf-8")
+        out=handle.stdout.read().decode("utf-8") 
+        print(f"Cannot bring up container...")
         print(f"Error:")
+        print(out)
         print(err)
         print("Cleaning up...")
         if docker_container_exists(name): docker_remove_container(name)
@@ -184,12 +186,12 @@ def docker_create_container(name, image, docker_args, docker_command):
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     cmd.extend(["--user", f"{uid}:{gid}"])
-
+    
     cmd.extend(shlex.split(docker_args.strip()))
 
     #These cannot be overriden
     cmd.extend(["--name", f"{container_name}"])
-    
+
     cmd.extend(["-t", f"{image}"])
     cmd.extend(shlex.split(docker_command.strip()))
 
