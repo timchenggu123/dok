@@ -75,6 +75,7 @@ class StateMachine():
         
     def attach_hako(self, args):
         name = self.db.select_active_hako()
+        print(f"[Hako]: Attaching to '<{name}>'")
         if name is None:
             print("No hako is active currently. To learn about how to activate a hako, see")
             print("     hako activate --help")
