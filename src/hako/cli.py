@@ -6,36 +6,43 @@ from hako.program import StateMachine
 def docker_file(path="."):
     return os.path.abspath(path)
 
-def create_handle(args):
+def create_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.create_hako(args)
 
-def attach_handle(args):
+def attach_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.attach_hako(args)
 
-def remove_handle(args):
+def remove_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.remove_hako(args)
 
-def activate_handle(args):
+def activate_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.activate_hako(args)
 
-def activate_attach_handle(args):
+def activate_attach_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.activate_hako(args)
     program.attach_hako(args)
 
-def list_handle(args):
+def list_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.list_hako(args)
 
-def exec_handle(args):
+def exec_handle(parser):
     program = StateMachine()
     program.exec_hako(sys.argv[2:])
     
-def status_handle(args):
+def status_handle(parser):
+    args = parser.parse_args()
     program = StateMachine()
     program.show_active(args)
     
@@ -51,7 +58,7 @@ def main():
 
     create_parser = subparsers.add_parser("create", aliases=["c"], help="Create a new hako dev environment.")
     create_parser.add_argument("name", type = str, help="Pass a custom name for the hako.")
-    file_or_image = create_parser.add_mutually_exclusive_group()
+    file_or_image = create_parser.add_mutually_exclusive_group(required=True)
     file_or_image.add_argument("-f", "--file", type = str, default = None, help="Specify a docker compose file to base the hako on.")
     file_or_image.add_argument("-i", "--image", type = str, default = None, help="Specify the docker image to base the hako on.")
     create_parser.add_argument("--run-args", type=str, default="", required=False, help = "Pass in the additional docker run arguments would you like to pass, enclosed in quotation marks. Only works with the -i --image option.")
@@ -78,8 +85,7 @@ def main():
     status_parser=subparsers.add_parser("status", aliases=["s"], help="Show active hako container.")
     status_parser.set_defaults(func=status_handle)
     args, _ = parser.parse_known_args() 
-    args.func(args)
-
+    args.func(parser)
 
 if __name__ == "__main__":
     import sys
