@@ -178,14 +178,18 @@ def docker_create_container(name, image, docker_args, docker_command):
         sys.exit(-1)
     cmd = ["docker", "run"]
     container_name = get_container_name(name)
-    cmd.extend(["--name", f"{container_name}"])
+    
+    #These can be overriden by the user-specified flags
     cmd.extend(["--volume", "/:/hakomappingdir"])
-
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     cmd.extend(["--user", f"{uid}:{gid}"])
 
     cmd.extend(shlex.split(docker_args.strip()))
+
+    #These cannot be overriden
+    cmd.extend(["--name", f"{container_name}"])
+    
     cmd.extend(["-t", f"{image}"])
     cmd.extend(shlex.split(docker_command.strip()))
 
