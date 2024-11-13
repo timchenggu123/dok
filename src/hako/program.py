@@ -13,8 +13,12 @@ class StateMachine():
     def create_hako(self, args):
         name = args.name
         if self.db.select_hako(name):
-           print(f"Hako named '{name}' already exists")
-           sys.exit(-1)
+            print(f"Hako named '{name}' already exists.")
+            yes = input(f"Do you want to replace '{name}'? [Y/N]\n")
+            if yes.lower() != "y":
+                print("aborted!")
+                sys.exit(-1)
+            docker_remove_container(name)
         if args.image:
             self.create_hako_from_image(args) 
             return
@@ -53,7 +57,7 @@ class StateMachine():
             print(f"    hako create --help")
             sys.exit(-1)
         if self.db.select_active_hako() == name:
-            print("Deactivating container...sucess!")
+            print("Deactivating container...success!")
             self.db.deactivate_hako()
         docker_remove_container(name)
         self.db.remove_hako(name)

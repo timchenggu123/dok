@@ -134,7 +134,7 @@ def docker_remove_container(name):
 
 def docker_compose_create_container(file_path, name):
     if docker_container_exists(name):
-        yes = input(f"Found conflicting container. Do you want to remove the container <{get_container_name(name)}> and retry? [Y/N]")
+        yes = input(f"Found conflicting container. Do you want to remove the container <{get_container_name(name)}> and retry? [Y/N]\n")
         if yes.lower() == "y":
             docker_remove_container(name)
             docker_compose_create_container(file_path, name)
