@@ -65,7 +65,7 @@ class StateMachine():
             print(f"Hako named '{name}' does not exist. To learn about how to create a hako, see")
             print(f"    hako create --help")
             sys.exit(-1)
-        if self.db.select_active_hako() == name:
+        if self.db.set_active_hako() == name:
             print("Deactivating container...success!")
             self.db.deactivate_hako()
         docker_remove_container(name)
@@ -79,11 +79,13 @@ class StateMachine():
             print(f"    hako create --help")
             sys.exit(-1)
         docker_start_container(name)
+        active_hako = self.db.set_active_hako()
+        docker_stop_container_async(active_hako)
         self.db.replace_active_hako(name)
         print("Activated hako!")
         
     def attach_hako(self, args):
-        name = self.db.select_active_hako()
+        name = self.db.set_active_hako()
         print(f"[Hako]: Attaching to '<{name}>'")
         if name is None:
             print("No hako is active currently. To learn about how to activate a hako, see")
@@ -94,7 +96,7 @@ class StateMachine():
         docker_attach_container(name)
     
     def list_hako(self, args):
-        active_hako = self.db.select_active_hako()
+        active_hako = self.db.set_active_hako()
         active_hako = self.db.select_hako(active_hako)
         hakos = self.db.select_all_hako()
         print("Name\tStatus\tImage\tFile".expandtabs(16))
@@ -106,7 +108,7 @@ class StateMachine():
             print(f"{line[0]}\tInactive\t{line[1]}\t{line[-1]}".expandtabs(16))
 
     def exec_hako(self, argv):
-        name = self.db.select_active_hako()
+        name = self.db.set_active_hako()
         if name is None:
             print("No hako is active currently. To learn about how to activate a hako, see")
             print("     hako activate --help")
@@ -116,7 +118,7 @@ class StateMachine():
         docker_exec_command(name, argv)
     
     def show_active(self, args):
-        name = self.db.select_active_hako()
+        name = self.db.set_active_hako()
         if name is None:
             print("No hako is active currently. To learn about how to activate a hako, see")
             print("     hako activate --help") 

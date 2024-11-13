@@ -92,7 +92,6 @@ def docker_container_exists(name):
             return True
     return False
 
-    
 def docker_is_container_running(name):
     cmd = ["docker", "ps"]
     container_name = get_container_name(name)
@@ -118,6 +117,11 @@ def docker_stop_container(name):
         print("Failed to stop container '{name}'\n", ret)
         sys.exit(-1)
     animation.finish("success!")
+
+def docker_stop_container_async(name):
+    container_name = get_container_name(name)
+    cmd = ["docker", "stop", container_name]
+    sb.Popen(cmd, stdout=sb.PIPE)
 
 def docker_remove_container(name):
     if docker_is_container_running(name):

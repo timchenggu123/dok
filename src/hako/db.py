@@ -32,7 +32,7 @@ class Database():
         cur.execute(f"DELETE FROM hako WHERE name = '{name}'")
         self.conn.commit()
     
-    def select_active_hako(self):
+    def set_active_hako(self):
         cur = self.conn.cursor()
         cur.execute(f"SELECT * FROM active_hako")
         res = cur.fetchone()
