@@ -21,11 +21,19 @@ class StateMachine():
             docker_remove_container(name)
             self.db.remove_hako(name)
         if args.image:
+            args.image = args.file_or_image
             self.create_hako_from_image(args) 
             return
         if args.file:
+            args.file = args.file_or_image
             self.create_hako_from_file(args)
             return
+        if os.path.exists(args.file_or_image):
+            args.file = args.file_or_image
+            self.create_hako_from_file(args)
+            return
+        args.image = args.file_or_image
+        self.create_hako_from_image(args)
     
     def create_hako_from_file(self,args):
         name = args.name

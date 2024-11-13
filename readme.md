@@ -18,23 +18,21 @@ git clone https://github.com/timchenggu123/hako.git && cd hako && pip install .
 
 ## Quick start
 ### Creating a Ubuntu dev environment
-`create` a Ubuntu dev environment simply with
+`create` a hako named `myhako` from `ubuntu`
 ```bash
-hako c myhako -i alphine
+hako c myhako ubuntu
 ```
-This will create a container from the `alphine:latest` image.
-
-Once it is ready, `activate` and `attach` to the environment with.
+Once it is ready, `a`ctivate and a`t`tach to `myhako` with.
 ```bash
 hako at myhako
 ```
 To exit the environment, simply type `exit`. 
 
-To `attach` to the dev environemnt again, just type
+To a`t`tach to the dev environemnt again, just type
 ```bash
 hako t
 ```
-Alternatively, if you just want to `execute` something without having to attach to the container, run
+Alternatively, if you just want to `e`xecute something without having to attach to the container, run
 ```bash
 hako e <your command>
 ```

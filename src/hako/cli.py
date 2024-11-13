@@ -58,10 +58,11 @@ def main():
 
     create_parser = subparsers.add_parser("create", aliases=["c"], help="Create a new hako dev environment.")
     create_parser.add_argument("name", type = str, help="Pass a custom name for the hako.")
-    file_or_image = create_parser.add_mutually_exclusive_group(required=True)
-    file_or_image.add_argument("-f", "--file", type = str, default = None, help="Specify a docker compose file to base the hako on.")
-    file_or_image.add_argument("-i", "--image", type = str, default = None, help="Specify the docker image to base the hako on.")
-    create_parser.add_argument("--run-args", type=str, default="", required=False, help = "Pass in the additional docker run arguments would you like to pass, enclosed in quotation marks. Only works with the -i --image option.")
+    file_or_image = create_parser.add_mutually_exclusive_group(required=False)
+    file_or_image.add_argument("-f", "--file", action="store_true", default = False, help="Explicitly specify that file_or_image is file.")
+    file_or_image.add_argument("-i", "--image", action="store_true", default = False, help="Explicitly specify that file_or_image is an image.")
+    create_parser.add_argument("file_or_image", type=str, default = None, help = "An image name or the path to a docker compose file. Hako will try to determine automatically.")
+    create_parser.add_argument("--run-args", type=str, default="", required=False, help = "Only needed when creating from image.Additional docker run arguments would you like to pass during container creation enclosed in quotation marks.")
     create_parser.set_defaults(func=create_handle)
 
     remove_parser = subparsers.add_parser("remove", aliases=["r"], help="Remove a hako environment.")
