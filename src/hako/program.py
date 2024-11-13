@@ -19,6 +19,7 @@ class StateMachine():
                 print("aborted!")
                 sys.exit(-1)
             docker_remove_container(name)
+            self.db.remove_hako(name)
         if args.image:
             self.create_hako_from_image(args) 
             return
