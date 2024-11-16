@@ -1,14 +1,14 @@
 import subprocess as sb
 import os, sys, shlex
-from hako.utils import *
+from dok.utils import *
 from time import sleep
 import yaml
 
-HAKO_MAPPING_DIR="hakomappingdir"
+HAKO_MAPPING_DIR="dokmappingdir"
 HAKO_YAML_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_container_name(name):
-    return f"hako-{name}"
+    return f"dok-{name}"
 
 def rebase_path(base, rel):
     path = os.path.join(base, rel)
@@ -59,7 +59,7 @@ def parse_yaml(obj, name, yml_path):
     if type(command) == list:
         command = " ".join(command)
     if command:
-        print("WARNING: Found command field specified in the docker compose file. Hako recommends executing all default commands with the entrypoint.")
+        print("WARNING: Found command field specified in the docker compose file. dok recommends executing all default commands with the entrypoint.")
     command = "\n".join([command, "/bin/sh"])
     service["command"] = [command]
     service["entrypoint"] = entrypoint
@@ -186,7 +186,7 @@ def docker_create_container(name, image, docker_args, docker_command):
     container_name = get_container_name(name)
     
     #These can be overriden by the user-specified flags
-    cmd.extend(["--volume", "/:/hakomappingdir"])
+    cmd.extend(["--volume", "/:/dokmappingdir"])
     uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
     gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
     cmd.extend(["--user", f"{uid}:{gid}"])
@@ -200,7 +200,7 @@ def docker_create_container(name, image, docker_args, docker_command):
     cmd.extend(shlex.split(docker_command.strip()))
 
     handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
-    animation = WaitingAnimation("Creating hako")
+    animation = WaitingAnimation("Creating dok")
     animation.update()
     is_running = docker_is_container_running(name)
     is_finished = handle.poll()
@@ -236,7 +236,7 @@ def docker_start_container(name):
         sleep(0.2)
         animation.update()
     if handle.poll() < 0:
-        print("\nError trying to start docker container. Was it accidentally removed? Try remove the hako and create it again.")
+        print("\nError trying to start docker container. Was it accidentally removed? Try remove the dok and create it again.")
         print("Error:")
         err = handle.stderr.read().decode("utf-8")
         print(err)
@@ -247,8 +247,8 @@ def docker_attach_container(name):
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
     pwd = os.path.abspath(os.curdir)
-    hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
-    cmd.extend(shlex.split(f"{shell} -c 'cd {hako_pwd} && {shell}'"))
+    dok_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
+    cmd.extend(shlex.split(f"{shell} -c 'cd {dok_pwd} && {shell}'"))
     sb.run(cmd)
     
 def docker_exec_command(name, argv):
@@ -256,7 +256,7 @@ def docker_exec_command(name, argv):
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
     pwd = os.path.abspath(os.curdir)
-    hako_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
+    dok_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
     command = shlex.join(argv)
-    cmd.extend([shell, "-c", f'cd {hako_pwd} && ' + command])
+    cmd.extend([shell, "-c", f'cd {dok_pwd} && ' + command])
     sb.run(cmd)

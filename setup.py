@@ -4,7 +4,7 @@ with open('readme.md', 'r') as f:
     long_description = f.read()
 
 setuptools.setup(
-    name='hako',
+    name='dok',
     version='0.0.0',
     author='Tim-Cheng Gu',
     author_email='2013tim.g@gmail.com',
@@ -16,11 +16,11 @@ setuptools.setup(
         "pyyaml"
     ],
     package_dir={
-        "hako": "src/hako"
+        "dok": "src/dok"
     },
     entry_points={
         'console_scripts': [
-            'hako=hako.cli:main',
+            'dok=dok.cli:main',
         ]
     },
     keywords='Docker utility tool',
