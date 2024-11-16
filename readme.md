@@ -1,4 +1,4 @@
-# HAKO
+# DOK
 `dok` is a command line tool that helps streamline your workflow with containerized dev environments. Inspired by `conda`, `dok` wraps around `docker` and `docker-compose` to help you seamlessly swap between bare-metal and containerized environments.
 
 ## Elevator Pitch
