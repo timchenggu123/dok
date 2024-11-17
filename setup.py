@@ -18,6 +18,7 @@ setuptools.setup(
     package_dir={
         "dok": "src/dok"
     },
+    packages=["dok"],
     entry_points={
         'console_scripts': [
             'dok=dok.cli:main',
