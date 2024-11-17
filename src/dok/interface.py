@@ -1,11 +1,13 @@
 import subprocess as sb
 import os, sys, shlex
 from dok.utils import *
+from dok import __windows__
 from time import sleep
 import yaml
+import pathlib
 
-HAKO_MAPPING_DIR="dokmappingdir"
-HAKO_YAML_DIR = os.path.dirname(os.path.abspath(__file__))
+DOK_MAPPING_DIR="dokmappingdir"
+DOK_YAML_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_container_name(name):
     return f"dok-{name}"
@@ -29,8 +31,11 @@ def parse_yaml(obj, name, yml_path):
     service = obj["services"][list(obj['services'].items())[0][0]]
     service["container_name"] = get_container_name(name)
 
-    if not HAKO_MAPPING_DIR in service.get("volumes", []):
-        service["volumes"].append(f"/:/{HAKO_MAPPING_DIR}")
+    if not DOK_MAPPING_DIR in service.get("volumes", []):
+        if __windows__:
+            service["volumes"].append(f"/host_mnt:/{DOK_MAPPING_DIR}")
+        else:
+            service["volumes"].append(f"/:/{DOK_MAPPING_DIR}")
     paths = []
     for path in service["volumes"]:
         host_path, container_path = path.split(":")
@@ -66,13 +71,14 @@ def parse_yaml(obj, name, yml_path):
     
     service["tty"] = True
     service["stdin_open"] = True
-    uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
-    gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
-    service["user"] = f"{uid}:{gid}"
+    if not __windows__:
+        uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
+        gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
+        service["user"] = f"{uid}:{gid}"
     return obj
 
 def save_yaml(obj, name):
-    dir = HAKO_YAML_DIR
+    dir = DOK_YAML_DIR
     yaml_dir = os.path.join(dir, "docker_compose")
     if not os.path.exists(yaml_dir):
         os.mkdir(yaml_dir)
@@ -127,13 +133,23 @@ def docker_remove_container(name):
     if docker_is_container_running(name):
         docker_stop_container(name)
     container_name = get_container_name(name)
-    cmd = ["docker", "container", "remove", container_name]
+    cmd = ["docker", "container", "rm", container_name]
     handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
     animation = WaitingAnimation("Removing container")
     animation.update()
     while handle.poll() is None:
         sleep(0.2)
         animation.update()
+    if handle.poll() < 0:
+        print("Failed to remove container...")
+        print("Error:")
+        err = handle.stderr.read().decode("utf-8")
+        print(err)
+        sys.exit(1)
+    out = handle.stdout.read().decode("utf-8").strip()
+    if out != container_name:
+        print(f"Failed to remove container '{name}'\n", out)
+        sys.exit(-1)
     animation.finish("success!")
 
 def docker_compose_create_container(file_path, name):
@@ -186,10 +202,15 @@ def docker_create_container(name, image, docker_args, docker_command):
     container_name = get_container_name(name)
     
     #These can be overriden by the user-specified flags
-    cmd.extend(["--volume", "/:/dokmappingdir"])
-    uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
-    gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
-    cmd.extend(["--user", f"{uid}:{gid}"])
+    if __windows__:
+        cmd.extend(["--volume", "/host_mnt:/dokmappingdir"])
+    else:
+        cmd.extend(["--volume", "/:/dokmappingdir"])
+    
+    if not __windows__:
+        uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
+        gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
+        cmd.extend(["--user", f"{uid}:{gid}"])
     
     cmd.extend(shlex.split(docker_args.strip()))
 
@@ -198,7 +219,7 @@ def docker_create_container(name, image, docker_args, docker_command):
 
     cmd.extend(["-t", f"{image}"])
     cmd.extend(shlex.split(docker_command.strip()))
-
+    print(cmd)
     handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
     animation = WaitingAnimation("Creating dok")
     animation.update()
@@ -242,21 +263,37 @@ def docker_start_container(name):
         print(err)
     animation.finish("success!")
 
+def get_docker_pwd():
+    if __windows__:
+        pwd = pathlib.PureWindowsPath(os.getcwd())
+        drive = pwd.drive.replace(":", "").lower()
+        path = pwd.parts[1:]
+        pwd = pathlib.PurePosixPath("/", drive, *path)
+    else:
+        pwd = os.path.abspath(os.curdir)
+    pwd = "".join(["/", DOK_MAPPING_DIR, str(pwd)])
+    print(pwd)
+    return pwd
+
 def docker_attach_container(name):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
-    pwd = os.path.abspath(os.curdir)
-    dok_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
-    cmd.extend(shlex.split(f"{shell} -c 'cd {dok_pwd} && {shell}'"))
+    dok_pwd= get_docker_pwd()
+    if not __windows__:
+        cmd.extend(shlex.split(f"{shell} -c 'cd {dok_pwd} && {shell}'"))
+    else:
+        cmd.extend(shlex.split(f"{shell}"))
     sb.run(cmd)
     
 def docker_exec_command(name, argv):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
-    pwd = os.path.abspath(os.curdir)
-    dok_pwd = "/" + HAKO_MAPPING_DIR + str(pwd)
+    dok_pwd = get_docker_pwd()
     command = shlex.join(argv)
-    cmd.extend([shell, "-c", f'cd {dok_pwd} && ' + command])
+    if not __windows__:
+        cmd.extend([shell, "-c", f"cd {dok_pwd} && " + command])
+    else:
+        cmd.extend([shell])
     sb.run(cmd)
