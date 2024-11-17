@@ -33,7 +33,8 @@ def parse_yaml(obj, name, yml_path):
 
     if not DOK_MAPPING_DIR in service.get("volumes", []):
         if __windows__:
-            service["volumes"].append(f"/host_mnt:/{DOK_MAPPING_DIR}")
+            # service["volumes"].append(f"/host_mnt:/{DOK_MAPPING_DIR}")
+            pass
         else:
             service["volumes"].append(f"/:/{DOK_MAPPING_DIR}")
     paths = []
@@ -71,7 +72,7 @@ def parse_yaml(obj, name, yml_path):
     
     service["tty"] = True
     service["stdin_open"] = True
-    if not __windows__:
+    if not __windows__ and not service.get("user", None):
         uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
         gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
         service["user"] = f"{uid}:{gid}"
