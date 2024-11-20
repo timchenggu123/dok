@@ -32,7 +32,7 @@ class Database():
         cur.execute(f"DELETE FROM dok WHERE name = '{name}'")
         self.conn.commit()
     
-    def set_active_dok(self):
+    def select_active_dok(self):
         cur = self.conn.cursor()
         cur.execute(f"SELECT * FROM active_dok")
         res = cur.fetchone()
