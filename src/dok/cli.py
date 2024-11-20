@@ -66,7 +66,8 @@ def main():
     create_parser.set_defaults(func=create_handle)
 
     remove_parser = subparsers.add_parser("remove", aliases=["r"], help="Remove a dok environment.")
-    remove_parser.add_argument("name", type=str, help="Name of the target dok to remove.")
+    remove_parser.add_argument("name", type=str, nargs="*", help="Name of the target dok to remove.")
+    remove_parser.add_argument("--all", action="store_true", default=False, help="Remove ALL existing environments.")
     remove_parser.set_defaults(func=remove_handle)
 
     attach_parser = subparsers.add_parser("attach", aliases=['t'], help="Attach to the active dok environment.")
