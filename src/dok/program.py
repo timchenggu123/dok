@@ -60,16 +60,27 @@ class StateMachine():
         print("finished!")
 
     def remove_dok(self, args):
-        name = args.name
-        if not self.db.select_dok(name):            
-            print(f"dok named '{name}' does not exist. To learn about how to create a dok, see")
-            print(f"    dok create --help")
-            sys.exit(-1)
-        if self.db.select_active_dok() == name:
-            print("Deactivating container...success!")
-            self.db.deactivate_dok()
-        docker_remove_container(name)
-        self.db.remove_dok(name)
+        names = []
+        if args.all:
+            yes = input(f"This will remove ALL dok environments and docker containers. Are you sure [Y/N]").lower()
+            if yes != "y":
+                exit(1)
+            names=self.db.select_all_dok()
+        else:
+            names = args.name
+        if names == []:
+            print(f"No dok name provided. See `dock remove --help for usage.")
+            exit(1)
+        for name in names:
+            if not self.db.select_dok(name):            
+                print(f"dok named '{name}' does not exist. To learn about how to create a dok, see")
+                print(f"    dok create --help")
+                sys.exit(-1)
+            if self.db.select_active_dok() == name:
+                print("Deactivating container...success!")
+                self.db.deactivate_dok()
+            docker_remove_container(name)
+            self.db.remove_dok(name)
         print("finished!")
     
     def activate_dok(self, args):
