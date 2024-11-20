@@ -65,7 +65,7 @@ class StateMachine():
             print(f"dok named '{name}' does not exist. To learn about how to create a dok, see")
             print(f"    dok create --help")
             sys.exit(-1)
-        if self.db.set_active_dok() == name:
+        if self.db.select_active_dok() == name:
             print("Deactivating container...success!")
             self.db.deactivate_dok()
         docker_remove_container(name)
@@ -79,13 +79,14 @@ class StateMachine():
             print(f"    dok create --help")
             sys.exit(-1)
         docker_start_container(name)
-        active_dok = self.db.set_active_dok()
-        docker_stop_container_async(active_dok)
-        self.db.replace_active_dok(name)
+        active_dok = self.db.select_active_dok()
+        if active_dok != name:
+            docker_stop_container_async(active_dok)
+            self.db.replace_active_dok(name)
         print("Activated dok!")
         
     def attach_dok(self, args):
-        name = self.db.set_active_dok()
+        name = self.db.select_active_dok()
         print(f"[dok]: Attaching to '<{name}>'")
         if name is None:
             print("No dok is active currently. To learn about how to activate a dok, see")
@@ -96,7 +97,7 @@ class StateMachine():
         docker_attach_container(name)
     
     def list_dok(self, args):
-        active_dok = self.db.set_active_dok()
+        active_dok = self.db.select_active_dok()
         active_dok = self.db.select_dok(active_dok)
         doks = self.db.select_all_dok()
         print("Name\tStatus\tImage\tFile".expandtabs(16))
@@ -108,7 +109,7 @@ class StateMachine():
             print(f"{line[0]}\tInactive\t{line[1]}\t{line[-1]}".expandtabs(16))
 
     def exec_dok(self, argv):
-        name = self.db.set_active_dok()
+        name = self.db.select_active_dok()
         if name is None:
             print("No dok is active currently. To learn about how to activate a dok, see")
             print("     dok activate --help")
@@ -118,7 +119,7 @@ class StateMachine():
         docker_exec_command(name, argv)
     
     def show_active(self, args):
-        name = self.db.set_active_dok()
+        name = self.db.select_active_dok()
         if name is None:
             print("No dok is active currently. To learn about how to activate a dok, see")
             print("     dok activate --help") 
