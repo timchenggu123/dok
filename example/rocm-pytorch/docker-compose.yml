@@ -1,0 +1,20 @@
+services:
+  my-rocm-pytorch-service:
+    container_name: rocm
+    image: rocm/pytorch:latest
+    volumes:
+      - ./ssh/:/var/lib/jenkins/.ssh/
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    ipc: host
+    shm_size: 8g
+    ports:
+      - "7860:7860"
+    command: /bin/bash -c "git config --global user.name 'John Doe' && git config --global user.email 'john.doe@email.com'"
