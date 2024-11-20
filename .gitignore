@@ -1,2 +1,5 @@
 build/
 dok.egg-info/
+example/rocm-pytorch/ssh/id_ed25519
+example/rocm-pytorch/ssh/id_ed25519.pub
+example/rocm-pytorch/ssh/known_hosts
