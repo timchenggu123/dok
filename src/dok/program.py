@@ -129,10 +129,19 @@ class StateMachine():
             docker_start_container(name)
         docker_exec_command(name, argv)
     
-    def show_active(self, args):
+    def show_active(self):
         name = self.db.select_active_dok()
         if name is None:
             print("No dok is active currently. To learn about how to activate a dok, see")
             print("     dok activate --help") 
             return
         print(name)
+    
+    def deactivate_dok(self):
+        name = self.db.select_active_dok()
+        if name is None:
+            return
+        docker_stop_container(name)
+        self.db.deactivate_dok()
+        print(f"Deactivated dok `{name}`")
+        return
