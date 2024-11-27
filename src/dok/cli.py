@@ -44,8 +44,12 @@ def exec_handle(parser):
 def status_handle(parser):
     args = parser.parse_args()
     program = StateMachine()
-    program.show_active(args)
+    program.show_active()
     
+def deactivate_handle(parser):
+    program = StateMachine()
+    program.deactivate_dok()
+
 def main():
     parser = argparse.ArgumentParser(
             prog = "dok", description="Quickly start your containerized dev environment."
@@ -86,6 +90,10 @@ def main():
 
     status_parser=subparsers.add_parser("status", aliases=["s"], help="Show active dok container.")
     status_parser.set_defaults(func=status_handle)
+    
+    deactivate_parser=subparsers.add_parser("deactivate", aliases=["d"], help="Deactivate the current dok.")
+    deactivate_parser.set_defaults(func=deactivate_handle)
+
     args, _ = parser.parse_known_args() 
     args.func(parser)
 
