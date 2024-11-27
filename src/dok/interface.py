@@ -149,8 +149,8 @@ def docker_remove_container(name):
         sys.exit(1)
     out = handle.stdout.read().decode("utf-8").strip()
     if out != container_name:
-        print(f"Failed to remove container '{name}'\n", out)
-        sys.exit(-1)
+        animation.finish(f"Failed to remove container '{name}'\n..skip")
+        return
     animation.finish("success!")
 
 def docker_compose_create_container(file_path, name):
