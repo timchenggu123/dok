@@ -28,7 +28,8 @@ def parse_yaml(obj, name, yml_path):
     if len(obj['services'].items()) > 1:
         print("Multiple services found in the docker compose file. Please ensure there is only one.")
         sys.exit(-1)
-    service = obj["services"][list(obj['services'].items())[0][0]]
+    key, service = list(obj['services'].items())[0]
+    obj["services"][get_container_name(name) + "-service"] = obj["services"].pop(key)
     service["container_name"] = get_container_name(name)
 
     if not DOK_MAPPING_DIR in service.get("volumes", []):
