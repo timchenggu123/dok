@@ -79,11 +79,31 @@ def parse_yaml(obj, name, yml_path):
         service["user"] = f"{uid}:{gid}"
     return obj
 
-def save_yaml(obj, name):
+def parse_yaml_rename_only(obj, name):
+    def str_presenter(dumper, data):
+        if len(data.splitlines()) > 1:  # check for multiline string
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+    yaml.add_representer(str, str_presenter)
+    yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+
+    if len(obj['services'].items()) > 1:
+        print("Multiple services found in the docker compose file. Please ensure there is only one.")
+        sys.exit(-1)
+    key, service = list(obj['services'].items())[0]
+    obj["services"][get_container_name(name) + "-service"] = obj["services"].pop(key)
+    service["container_name"] = get_container_name(name)
+    return obj
+    
+def get_yaml_dir():
     dir = DOK_YAML_DIR
     yaml_dir = os.path.join(dir, "docker_compose")
     if not os.path.exists(yaml_dir):
         os.mkdir(yaml_dir)
+    return yaml_dir
+
+def save_yaml(obj, name):
+    yaml_dir = get_yaml_dir()
     filepath = os.path.join(yaml_dir, f"{name}.yml")
     with open(filepath, "w") as f:
         yaml.safe_dump(obj, f)
@@ -221,7 +241,6 @@ def docker_create_container(name, image, docker_args, docker_command):
 
     cmd.extend(["-t", f"{image}"])
     cmd.extend(shlex.split(docker_command.strip()))
-    print(cmd)
     handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
     animation = WaitingAnimation("Creating dok")
     animation.update()
@@ -239,6 +258,34 @@ def docker_create_container(name, image, docker_args, docker_command):
         if docker_container_exists(name): docker_remove_container(name)
         sys.exit(-1)
     animation.finish("success!")
+    return cmd
+
+def docker_copy_from_command(name, cmd):
+    cmd = shlex.split(cmd.strip())
+
+    # Reset the container name
+    for i,v  in enumerate(cmd):
+        if v == "--name":
+            break
+    cmd[i+1] = get_container_name(name)
+    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
+    animation = WaitingAnimation("Creating dok")
+    animation.update()
+    is_running = docker_is_container_running(name)
+    is_finished = handle.poll()
+    while not is_running and is_finished is None:
+        sleep(0.2)
+        animation.update()
+        is_running = docker_is_container_running(name)
+        is_finished = handle.poll()
+    if is_finished:
+        err = handle.stderr.read().decode("utf-8")
+        print("Failed trying to create container: \n Error: \n", err)
+        print("Cleaning up...")
+        if docker_container_exists(name): docker_remove_container(name)
+        sys.exit(-1)
+    animation.finish("success!")
+    return cmd
 
 def docker_get_shell(name):
     container_name = get_container_name(name)
