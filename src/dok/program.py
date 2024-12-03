@@ -1,6 +1,6 @@
 from dok.db import Database 
 from dok.interface import *
-import sys, yaml
+import sys, yaml, shutil
 
 class StateMachine():
     def __init__(self):
@@ -55,8 +55,9 @@ class StateMachine():
         name  = args.name
         docker_args = args.run_args
         docker_command = "sleep infinity"
-        docker_create_container(name, image, docker_args, docker_command)
-        self.db.insert_dok(name, image, docker_command, "")
+        cmd = docker_create_container(name, image, docker_args, docker_command)
+        cmd = " ".join(cmd)
+        self.db.insert_dok(name, image, cmd, "")
         print("finished!")
 
     def remove_dok(self, args):
@@ -145,3 +146,21 @@ class StateMachine():
         self.db.deactivate_dok()
         print(f"Deactivated dok `{name}`")
         return
+    
+    def copy_dok(self, args):
+        name = args.name
+        source = args.source
+        _, image, cmd, file = self.db.select_dok(source)
+        if cmd:
+            docker_copy_from_command(name, cmd)
+            self.db.insert_dok(name, image, cmd, "")
+        if file:
+            source_file = os.path.join(get_yaml_dir(), f"{source}.yml")
+            with open(source_file, "r") as f:
+                obj = yaml.safe_load(f)
+            obj = parse_yaml_rename_only(obj, name)
+            save_yaml(obj, name)
+            dest_file = os.path.join(get_yaml_dir(), f"{name}.yml")
+            docker_compose_create_container(dest_file, name)
+            self.db.insert_dok(name, "", "", docker_file=dest_file)
+        print("finished!")

@@ -50,6 +50,10 @@ def deactivate_handle(parser):
     program = StateMachine()
     program.deactivate_dok()
 
+def copy_handle(parser):
+    args = parser.parse_args()
+    program = StateMachine()
+    program.copy_dok(args)
 def main():
     parser = argparse.ArgumentParser(
             prog = "dok", description="Quickly start your containerized dev environment."
@@ -93,6 +97,11 @@ def main():
     
     deactivate_parser=subparsers.add_parser("deactivate", aliases=["d"], help="Deactivate the current dok.")
     deactivate_parser.set_defaults(func=deactivate_handle)
+
+    copy_parser = subparsers.add_parser("copy", aliases=["cp"], help="Create a copy of an existing dok.")
+    copy_parser.set_defaults(func=copy_handle)
+    copy_parser.add_argument("source", type=str, help="The name of the source dok to copy from.")
+    copy_parser.add_argument("name", type=str, help="The name of the new dok.")
 
     args, _ = parser.parse_known_args() 
     args.func(parser)
