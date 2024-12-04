@@ -321,14 +321,14 @@ def get_docker_pwd():
     else:
         pwd = os.path.abspath(os.curdir)
     pwd = "".join(["/", DOK_MAPPING_DIR, str(pwd)])
-    print(pwd)
     return pwd
 
 def docker_attach_container(name):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
-    dok_pwd= get_docker_pwd()
+    dok_pwd = get_docker_pwd()
+    dok_pwd = dok_pwd.replace(" ", "\\ ")
     if not __windows__:
         cmd.extend(shlex.split(f"{shell} -c 'cd {dok_pwd} && {shell}'"))
     else:
@@ -340,9 +340,10 @@ def docker_exec_command(name, argv):
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it", container_name]
     dok_pwd = get_docker_pwd()
+    dok_pwd = dok_pwd.replace(" ", "\\ ")
     command = shlex.join(argv)
     if not __windows__:
-        cmd.extend([shell, "-c", f"cd {dok_pwd} && " + command])
+        cmd.extend([shell, "-c", f"cd '{dok_pwd}' && " + command])
     else:
         cmd.extend([shell])
     sb.run(cmd)
