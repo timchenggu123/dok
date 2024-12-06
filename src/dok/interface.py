@@ -16,6 +16,13 @@ def rebase_path(base, rel):
     path = os.path.join(base, rel)
     return os.path.abspath(path)
 
+def get_host_user_group_id():    
+    if not __windows__:
+        uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
+        gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
+        return uid, gid
+    return None, None
+
 def parse_yaml(obj, name, yml_path):
     def str_presenter(dumper, data):
         if len(data.splitlines()) > 1:  # check for multiline string
@@ -73,10 +80,6 @@ def parse_yaml(obj, name, yml_path):
     
     service["tty"] = True
     service["stdin_open"] = True
-    if not __windows__ and not service.get("user", None):
-        uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
-        gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
-        service["user"] = f"{uid}:{gid}"
     return obj
 
 def parse_yaml_rename_only(obj, name):
@@ -109,6 +112,13 @@ def save_yaml(obj, name):
         yaml.safe_dump(obj, f)
     return filepath
 
+def docker_get_shell(name):
+    container_name = get_container_name(name)
+    cmd = ["docker", "exec", "-i", container_name, "sh"]
+    handle = sb.Popen(cmd, stdin=sb.PIPE, stderr=sb.PIPE, stdout=sb.PIPE)
+    exe, _  = handle.communicate(input=b"command -v bash")
+    return exe.decode("utf-8").strip() if handle.poll() == 0 else "sh"
+    
 def docker_container_exists(name):
     cmd = ["docker", "ps", "-a"]
     container_name = get_container_name(name)
@@ -119,6 +129,29 @@ def docker_container_exists(name):
         if container_name == line.split()[-1]:
             return True
     return False
+
+def docker_container_create_user(name, uid):
+    shell = docker_get_shell(name)
+    container_name = get_container_name(name)
+    cmd = ["docker", "exec", "--privileged", container_name, shell, "-c"]
+    if shell != "sh":
+        cmd.extend([f"useradd -u {uid} -m -s {shell} dok"])
+    else:
+        cmd.extend([f"useradd -u {uid} -m dok"])
+    handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
+    if handle.returncode != 0:
+        return False 
+    handle.wait()
+
+    cmd = ["docker", "exec", container_name, "groups"]
+    handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
+    handle.wait()
+    groups = handle.stdout.read().decode("utf-8").strip().split()
+
+    cmd = ["docker", "exec", "--privileged", container_name, "usermod", "-a", "-G", ",".join(groups), "dok"]
+    handle = sb.Popen(cmd)
+    handle.wait()
+    return True
 
 def docker_is_container_running(name):
     cmd = ["docker", "ps"]
@@ -209,6 +242,13 @@ def docker_compose_create_container(file_path, name):
         print("Cleaning up...")
         if docker_container_exists(name): docker_remove_container(name)
         sys.exit(1)
+    if not __windows__:
+        print("Creating dok user...", end="\r")
+        uid, _ = get_host_user_group_id()
+        if docker_container_create_user(name, uid):
+            print("Creating dok user...success!") 
+        else:
+            print("Creating dok user...skipped")
     animation.finish("success!")
 
 def docker_create_container(name, image, docker_args, docker_command):
@@ -216,8 +256,8 @@ def docker_create_container(name, image, docker_args, docker_command):
         yes = input(f"Found conflicting container. Do you want to remove the container <{get_container_name(name)}> and retry? [Y/N]")
         if yes.lower() == "y":
             docker_remove_container(name)
-            docker_create_container(name, image, docker_args, docker_command)
-            return
+            cmd = docker_create_container(name, image, docker_args, docker_command)
+            return cmd
         print("aborted")
         sys.exit(-1)
     cmd = ["docker", "run"]
@@ -228,11 +268,6 @@ def docker_create_container(name, image, docker_args, docker_command):
         cmd.extend(["--volume", "/host_mnt:/dokmappingdir"])
     else:
         cmd.extend(["--volume", "/:/dokmappingdir"])
-    
-    if not __windows__:
-        uid = sb.run(["id", "-u"], capture_output=True).stdout.decode("utf-8").strip()
-        gid = sb.run(["id", "-g"], capture_output=True).stdout.decode("utf-8").strip()
-        cmd.extend(["--user", f"{uid}:{gid}"])
     
     cmd.extend(shlex.split(docker_args.strip()))
 
@@ -258,6 +293,13 @@ def docker_create_container(name, image, docker_args, docker_command):
         if docker_container_exists(name): docker_remove_container(name)
         sys.exit(-1)
     animation.finish("success!")
+    if not __windows__:
+        print("Creating dok user...", end="\r")
+        uid, _ = get_host_user_group_id()
+        if docker_container_create_user(name, uid):
+            print("Creating dok user...success!")
+        else:
+            print("Creating dok user...skipped")
     return cmd
 
 def docker_copy_from_command(name, cmd):
@@ -285,14 +327,14 @@ def docker_copy_from_command(name, cmd):
         if docker_container_exists(name): docker_remove_container(name)
         sys.exit(-1)
     animation.finish("success!")
+    if not __windows__:
+        print("Creating dok user...", end="\r")
+        uid, _ = get_host_user_group_id()
+        if docker_container_create_user(name, uid):
+            print("Creating dok user...success!")
+        else:
+            print("Creating dok user...skipped")
     return cmd
-
-def docker_get_shell(name):
-    container_name = get_container_name(name)
-    cmd = ["docker", "exec", "-i", container_name, "sh"]
-    handle = sb.Popen(cmd, stdin=sb.PIPE, stderr=sb.PIPE, stdout=sb.PIPE)
-    exe, _  = handle.communicate(input=b"command -v bash")
-    return exe.decode("utf-8").strip() if handle.poll() == 0 else "sh"
     
 def docker_start_container(name):
     if docker_is_container_running(name):
@@ -326,7 +368,11 @@ def get_docker_pwd():
 def docker_attach_container(name):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
-    cmd = ["docker", "exec", "-it", container_name]
+    cmd = ["docker", "exec", "-it"]
+    if not __windows__:
+        uid, gid = get_host_user_group_id()
+        cmd.extend(["-u", f"{uid}:{gid}"])
+    cmd.append(container_name)
     dok_pwd = get_docker_pwd()
     dok_pwd = dok_pwd.replace(" ", "\\ ")
     if not __windows__:
@@ -338,7 +384,11 @@ def docker_attach_container(name):
 def docker_exec_command(name, argv):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
-    cmd = ["docker", "exec", "-it", container_name]
+    cmd = ["docker", "exec", "-it"]
+    if not __windows__:
+        uid, gid = get_host_user_group_id()
+        cmd.extend(["-u", f"{uid}:{gid}"])
+    cmd.append(container_name)
     dok_pwd = get_docker_pwd()
     dok_pwd = dok_pwd.replace(" ", "\\ ")
     command = shlex.join(argv)
