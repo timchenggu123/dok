@@ -269,7 +269,14 @@ def docker_create_container(name, image, docker_args, docker_command):
     else:
         cmd.extend(["--volume", "/:/dokmappingdir"])
     
-    cmd.extend(shlex.split(docker_args.strip()))
+    #Removing illegal flags.
+    docker_args = shlex.split(docker_args.strip())
+    for arg in docker_args:
+        if arg == "-it":
+            docker_args.remove(arg)
+            print("INFO: Found illegal docker flag '-it'. Ignoring since Dok will handle TTY automatically ;)")
+
+    cmd.extend(docker_args)
 
     #These cannot be overriden
     cmd.extend(["--name", f"{container_name}"])

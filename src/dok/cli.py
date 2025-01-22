@@ -54,6 +54,12 @@ def copy_handle(parser):
     args = parser.parse_args()
     program = StateMachine()
     program.copy_dok(args)
+
+def docker_handle(parser):
+    args, _ = parser.parse_known_args()
+    program = StateMachine()
+    program.docker_create_dok(args, sys.argv[2:])
+
 def main():
     parser = argparse.ArgumentParser(
             prog = "dok", description="Quickly start your containerized dev environment."
@@ -102,6 +108,9 @@ def main():
     copy_parser.set_defaults(func=copy_handle)
     copy_parser.add_argument("source", type=str, help="The name of the source dok to copy from.")
     copy_parser.add_argument("name", type=str, help="The name of the new dok.")
+
+    docker_parser = subparsers.add_parser("docker", help="Create a container from a native docker run command")
+    docker_parser.set_defaults(func=docker_handle)
 
     args, _ = parser.parse_known_args() 
     args.func(parser)

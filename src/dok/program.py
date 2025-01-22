@@ -164,3 +164,27 @@ class StateMachine():
             docker_compose_create_container(dest_file, name)
             self.db.insert_dok(name, "", "", docker_file=dest_file)
         print("finished!")
+    
+    def docker_create_dok(self, args, argv):
+        # Parse cmd options
+        if argv.pop(0) != "run":
+            print("Please enter a docker run command. Other docker commands are not supported by Dok :)")
+            return
+        args.name = input("Please enter a name for the image you are creating.\n")
+        options = []
+        f_option = False
+        for arg in argv:
+            if arg[0] == "-":
+                options.append(arg)
+                f_option = True
+                continue
+            if f_option:
+                options.append(arg)
+                f_option = False
+                continue
+            args.image = arg
+            break
+        args.run_args = shlex.join(options)
+        self.create_dok_from_image(args)
+        
+
