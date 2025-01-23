@@ -386,13 +386,16 @@ def get_docker_pwd():
     pwd = "".join(["/", DOK_MAPPING_DIR, str(pwd)])
     return pwd
 
-def docker_attach_container(name):
+def docker_attach_container(name, privileged=False):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "-it"]
-    if not __windows__:
-        uid, gid = get_host_user_group_id()
-        cmd.extend(["-u", f"{uid}:{gid}"])
+    if privileged:
+        cmd.extend(["--privileged"])
+    else:
+        if not __windows__:
+            uid, gid = get_host_user_group_id()
+            cmd.extend(["-u", f"{uid}:{gid}"])
     cmd.append(container_name)
     dok_pwd = get_docker_pwd()
     dok_pwd = dok_pwd.replace(" ", "\\ ")
@@ -402,13 +405,14 @@ def docker_attach_container(name):
         cmd.extend(shlex.split(f"{shell}"))
     sb.run(cmd)
     
-def docker_exec_command(name, argv):
+def docker_exec_command(name, argv, privileged=False):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
-    cmd = ["docker", "exec", "-it", "--privileged"]
-    if not __windows__:
-        uid, gid = get_host_user_group_id()
-        cmd.extend(["-u", f"{uid}:{gid}"])
+    cmd = ["docker", "exec", "-it"]
+    if not privileged:
+        if not __windows__:
+            uid, gid = get_host_user_group_id()
+            cmd.extend(["-u", f"{uid}:{gid}"])
     cmd.append(container_name)
     dok_pwd = get_docker_pwd()
     dok_pwd = dok_pwd.replace(" ", "\\ ")

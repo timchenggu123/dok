@@ -106,7 +106,7 @@ class StateMachine():
             sys.exit(-1)
         if not docker_is_container_running(name):
             docker_start_container(name)
-        docker_attach_container(name)
+        docker_attach_container(name, privileged=args.privileged)
     
     def list_dok(self, args):
         active_dok = self.db.select_active_dok()
