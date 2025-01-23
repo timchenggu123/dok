@@ -134,21 +134,35 @@ def docker_container_create_user(name, uid):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "--privileged", container_name, shell, "-c"]
-    if shell != "sh":
-        cmd.extend([f"useradd -u {uid} -m -s {shell} dok"])
-    else:
-        cmd.extend([f"useradd -u {uid} -m dok"])
-    handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
-    if handle.returncode != 0:
-        return False 
-    handle.wait()
 
+    #Find user id in the container
+    cmd.extend([f'grep ":{uid}:" /etc/passwd'])
+    handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
+    handle.wait()
+    if handle.returncode != 0:
+        print("Error: failure finding /etc/passwd in the container. Skipping user creation :(")
+        return False
+    user_name = handle.stdout.read().decode("utf-8").strip().split(":")
+    if not user_name:
+        #Create a user
+        if shell != "sh":
+            cmd[-1] = f"useradd -u {uid} -m -s {shell} dok"
+        else:
+            cmd[-1] = [f"useradd -u {uid} -m dok"]
+        handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
+        handle.wait()
+        if handle.returncode != 0:
+            return False
+        user_name = "dok"
+    else:
+        print("INFO: Found user in container with the same user id as host. Using it as default dok user.")
+        user_name = user_name[0]
+    
     cmd = ["docker", "exec", container_name, "groups"]
     handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
     handle.wait()
     groups = handle.stdout.read().decode("utf-8").strip().split()
-
-    cmd = ["docker", "exec", "--privileged", container_name, "usermod", "-a", "-G", ",".join(groups), "dok"]
+    cmd = ["docker", "exec", "--privileged", container_name, "usermod", "-a", "-G", ",".join(groups), user_name]
     handle = sb.Popen(cmd)
     handle.wait()
     return True
@@ -391,7 +405,7 @@ def docker_attach_container(name):
 def docker_exec_command(name, argv):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
-    cmd = ["docker", "exec", "-it"]
+    cmd = ["docker", "exec", "-it", "--privileged"]
     if not __windows__:
         uid, gid = get_host_user_group_id()
         cmd.extend(["-u", f"{uid}:{gid}"])
