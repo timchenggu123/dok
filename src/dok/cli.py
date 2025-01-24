@@ -86,7 +86,7 @@ def main():
 
     attach_parser = subparsers.add_parser("attach", aliases=['t'], help="Attach to the active dok environment.")
     # attach_parser.add_argument("command", nargs="?", default="/bin/bash", help="[optional] a list of commands to run after activation, enclosed as a string")
-    activate_parser.add_argument("-p", "--privileged", action="store_true", default=False, help="Attach to the container in privileged mode.")
+    attach_parser.add_argument("-p", "--privileged", action="store_true", default=False, help="Attach to the container in privileged mode.")
     attach_parser.set_defaults(func=attach_handle)
 
     activate_attach_parser=subparsers.add_parser("activate-attach", aliases=["at"], help="Combine the activate and attach commands.")
