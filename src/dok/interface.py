@@ -134,9 +134,15 @@ def docker_container_create_user(name, uid):
     shell = docker_get_shell(name)
     container_name = get_container_name(name)
     cmd = ["docker", "exec", "--privileged", container_name, shell, "-c"]
-
+    #Check if sudo is available as a command
+    cmd.append("command -v sudo")
+    handle = sb.Popen(cmd)
+    handle.wait()
+    sudo = ""
+    if handle.returncode == 0:
+        sudo = "sudo "
     #Find user id in the container
-    cmd.extend([f'grep ":{uid}:" /etc/passwd'])
+    cmd[-1] = f'grep ":{uid}:" /etc/passwd'
     handle = sb.Popen(cmd, stdout=sb.PIPE)
     handle.wait()
     if handle.returncode != 0:
@@ -146,9 +152,9 @@ def docker_container_create_user(name, uid):
     if not user_name:
         #Create a user
         if shell != "sh":
-            cmd[-1] = f"useradd -u {uid} -m -s {shell} dok"
+            cmd[-1] = f"{sudo}useradd -u {uid} -m -s {shell} dok"
         else:
-            cmd[-1] = [f"useradd -u {uid} -m dok"]
+            cmd[-1] = f"{sudo}useradd -u {uid} -m dok"
         handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
         handle.wait()
         if handle.returncode != 0:
@@ -158,11 +164,11 @@ def docker_container_create_user(name, uid):
         print("INFO: Found user in container with the same user id as host. Using it as default dok user.")
         user_name = user_name[0]
     
-    cmd = ["docker", "exec", container_name, "groups"]
+    cmd[-1] = f"{sudo}groups"
     handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
     handle.wait()
     groups = handle.stdout.read().decode("utf-8").strip().split()
-    cmd = ["docker", "exec", "--privileged", container_name, "usermod", "-a", "-G", ",".join(groups), user_name]
+    cmd[-1] = sudo + shlex.join(["usermod", "-a", "-G", ",".join(groups), user_name])
     handle = sb.Popen(cmd)
     handle.wait()
     return True
