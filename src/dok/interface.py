@@ -137,12 +137,12 @@ def docker_container_create_user(name, uid):
 
     #Find user id in the container
     cmd.extend([f'grep ":{uid}:" /etc/passwd'])
-    handle = sb.Popen(cmd, stdout=sb.PIPE, stderr=sb.PIPE)
+    handle = sb.Popen(cmd, stdout=sb.PIPE)
     handle.wait()
     if handle.returncode != 0:
-        print("Error: failure finding /etc/passwd in the container. Skipping user creation :(")
-        return False
-    user_name = handle.stdout.read().decode("utf-8").strip().split(":")
+        user_name = ""
+    else:
+        user_name = handle.stdout.read().decode("utf-8").strip().split(":")
     if not user_name:
         #Create a user
         if shell != "sh":
