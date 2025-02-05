@@ -63,7 +63,7 @@ class StateMachine():
     def remove_dok(self, args):
         names = []
         if args.all:
-            yes = input(f"This will remove ALL dok environments and docker containers. Are you sure [Y/N]").lower()
+            yes = input(f"This will remove ALL dok environments and docker containers. Are you sure [Y/N]\n").lower()
             if yes != "y":
                 exit(1)
             names=self.db.select_all_dok()

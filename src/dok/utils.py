@@ -4,9 +4,9 @@ class WaitingAnimation():
         self.base = base
         self.buffer = ""
 
-    def update(self):
+    def update(self, s=""):
         self.clear()
-        self.buffer = self.base + "."*self.counter 
+        self.buffer = s + self.base + "."*self.counter 
         self.flush()
         if self.counter == 3:
             self.counter = 1
