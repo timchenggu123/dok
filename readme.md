@@ -2,12 +2,29 @@
 `dok` is a command line tool that helps streamline your workflow with containerized dev environments. Inspired by `conda`, `dok` wraps around `docker` and `docker-compose` to help you seamlessly swap between bare-metal and containerized environments.
 
 ## Elevator Pitch
-Docker is great. Using docker containers as dev environments is a brilliant idea. But it can also be a just a little bit annoying -- we all go through the tedious `docker run -it`'s, the `--user`'s, the `--volumes ./:`, followed by the more-than-long-enough list of arguments to create containers. We are all familiar with the small mental gymnatistics we had to excercise to get a partiular image working as a dev env, the little frustraions when the container auto exits or the `tty` simply won't respond to inputs.
+Docker is a really powerful tool and great for developing and testing software in different environments. However, the process of using a docker container can be simpler. Take a look at the following docker command for using ROCm with docker
+```
+docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+--device=/dev/kfd --device=/dev/dri --group-add video \
+--ipc=host --shm-size 8G rocm/pytorch:latest
+```
+ This needs to be run everytime a new container needs to be created, which can be a bit of a pain. If only there some way to quickly copy the configuration of existing containers can create new ones.
 
-Fine, maybe you are smart and organized, and you use `docker compose`, so it is all good and managed. But it still can be an annoying to configure `volumes`, `stdin`, `tty`, `user` everytime in the yaml, oh and don't forget to put a `/bin/bash -c "sleep infinity"` in the command to keep the container alive! After all the work, you still have to run `docker compose up -d && docker exec -it <name> /bin/bash` just to run it, then `cd` to the directory to finally get some work done. 
+ With dok, you can! Simply prepend dok to the docker command
+ ```
+ dok docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+--device=/dev/kfd --device=/dev/dri --group-add video \
+--ipc=host --shm-size 8G rocm/pytorch:latest
+```
+And give the resulting dok a name such as `mario`
 
-Okay, maybe this is not that bad, but it can be much simpler still. `dok` simplifies dev environments management; all you need is `dok c`, a name for the environemnt, and the base image or a docker compose file to create an environment. `dok` automatically ensures containers do not auto exit and are attached to appropriate shells. Activate an envionemnt with `dok a <name>` and attach to it from anywhere in on your host with `dok t`. `dok` makes the experience of using docker images as dev much simpler. 
-## Installation
+Now, everytime you want a fresh container with the same configuration, just run
+```
+dok cp mario luigi
+```
+
+Dok offers many more awesome features like this, check it out!
+
 ### Requirements:
 `docker` >= 27.0.0 and `python` >= 3.8
 
@@ -17,11 +34,17 @@ git clone https://github.com/timchenggu123/dok.git && cd dok && pip install .
 ```
 
 ## Quick start
-### Creating a Ubuntu dev environment
-`create` a dok named `mydok` from `ubuntu`
+## Creating a dok
+`create` a dok container from your `docker run` command
 ```bash
-dok c mydok ubuntu
+dok docker run <your flags and commands here>
 ```
+Enter a name for your dok container after the promt
+```
+Please enter a name for the image you are creating.
+mydok
+```
+## Using a dok container
 Once it is ready, `a`ctivate and a`t`tach to `mydok` with.
 ```bash
 dok at mydok
@@ -31,6 +54,10 @@ To exit the environment, simply type `exit`.
 To a`t`tach to the dev environemnt again, just type
 ```bash
 dok t
+```
+To attach as root user, append `-p`
+```
+dok t -p
 ```
 Alternatively, if you just want to `e`xecute something without having to attach to the container, run
 ```bash
