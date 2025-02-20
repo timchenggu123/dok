@@ -149,6 +149,14 @@ class StateMachine():
     
     def copy_dok(self, args):
         name = args.name
+        if self.db.select_dok(name):
+            print(f"dok named '{name}' already exists.")
+            yes = input(f"Do you want to replace '{name}'? [Y/N]\n")
+            if yes.lower() != "y":
+                print("aborted!")
+                sys.exit(-1)
+            docker_remove_container(name)
+            self.db.remove_dok(name)
         source = args.source
         _, image, cmd, file = self.db.select_dok(source)
         if cmd:
