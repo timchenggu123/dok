@@ -6,7 +6,7 @@ from time import sleep
 import yaml
 import pathlib
 
-DOK_MAPPING_DIR="dokmappingdir"
+DOK_MAPPING_DIR="_dok_"
 DOK_YAML_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_container_name(name):
@@ -285,9 +285,9 @@ def docker_create_container(name, image, docker_args, docker_command):
     
     #These can be overriden by the user-specified flags
     if __windows__:
-        cmd.extend(["--volume", "/host_mnt:/dokmappingdir"])
+        cmd.extend(["--volume", "/host_mnt:/_dok_"])
     else:
-        cmd.extend(["--volume", "/:/dokmappingdir"])
+        cmd.extend(["--volume", "/:/_dok_"])
     
     #Removing illegal flags.
     docker_args = shlex.split(docker_args.strip())
