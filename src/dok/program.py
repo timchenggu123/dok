@@ -184,8 +184,7 @@ class StateMachine():
         for arg in argv:
             if arg[0] == "-":
                 options.append(arg)
-                if arg.find("=") != -1:
-                    f_option = True
+                f_option = True
                 continue
             if f_option:
                 options.append(arg)
