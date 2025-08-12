@@ -181,12 +181,12 @@ class StateMachine():
         args.name = input("Please enter a name for the image you are creating.\n")
         options = []
         f_option = False
-        for arg in argv:
+        for i, arg in enumerate(argv):
             if arg[0] == "-":
                 options.append(arg)
                 f_option = True
                 continue
-            if f_option:
+            if f_option and not i == len(argv) - 1: 
                 options.append(arg)
                 f_option = False
                 continue
