@@ -59,7 +59,7 @@ def parse_yaml(obj, name, yml_path):
         build["context"] = rebase_path(wkdir, context_path)
     if build and build["dockerfile"]:
         file_path = build["dockerfile"]
-        build["dockerfile"] = rebase_path(wkdir, file_path)
+        build["dockerfile"] = rebase_path(build["context"], file_path)
     
     files = []
     if service.get("env_file", None):
