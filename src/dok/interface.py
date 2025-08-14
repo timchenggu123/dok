@@ -1,4 +1,5 @@
 import subprocess as sb
+import pexpect
 import os, sys, shlex
 from dok.utils import *
 from dok import __windows__
@@ -240,18 +241,11 @@ def docker_compose_create_container(file_path, name):
     cmd.extend(["-f", f"{file_path}"])
     cmd.extend(["up", "-d"])
 
-    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE)
-    animation = WaitingAnimation(f"Creating the container for '{name}'")
-    animation.update()
-    while handle.poll() is None:
-        sleep(0.2)
-        animation.update()
-    if handle.poll() < 0:
-        err=handle.stderr.read().decode("utf-8")
-        print(f"Failed to create container from yaml file...")
-        print(f"Error:")
-        print(err)
-        sys.exit(1)
+    handle = pexpect.spawn(shlex.join(cmd), encoding="utf-8")
+    handle.logfile_read = sys.stdout
+    while handle.isalive():
+        handle.expect(['\n', pexpect.TIMEOUT, pexpect.EOF], timeout=1)
+
     if not docker_is_container_running(name):
         err=handle.stderr.read().decode("utf-8")
         out=handle.stdout.read().decode("utf-8") 
@@ -269,7 +263,7 @@ def docker_compose_create_container(file_path, name):
             print("Creating dok user...success!") 
         else:
             print("Creating dok user...skipped")
-    animation.finish("success!")
+    # animation.finish("success!")
 
 def docker_create_container(name, image, docker_args, docker_command):
     if docker_container_exists(name):
@@ -303,23 +297,17 @@ def docker_create_container(name, image, docker_args, docker_command):
 
     cmd.extend(["-t", f"{image}"])
     cmd.extend(shlex.split(docker_command.strip()))
-    handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
-    animation = WaitingAnimation("Creating dok")
-    animation.update()
-    is_running = docker_is_container_running(name)
-    is_finished = handle.poll()
-    while not is_running and is_finished is None:
-        sleep(0.2)
-        animation.update()
+
+    handle = pexpect.spawn(shlex.join(cmd), encoding="utf-8")
+    handle.logfile_read=sys.stdout
+    print("Creating dok ...")
+    is_running = False
+    while not is_running:
+        handle.expect(['\n', pexpect.TIMEOUT, pexpect.EOF], timeout=1)
         is_running = docker_is_container_running(name)
-        is_finished = handle.poll()
-    if is_finished:
-        err = handle.stderr.read().decode("utf-8")
-        print("Failed trying to create container: \n Error: \n", err)
-        print("Cleaning up...")
-        if docker_container_exists(name): docker_remove_container(name)
-        sys.exit(-1)
-    animation.finish("success!")
+        sleep(0.2)
+
+    print("Success!")
     if not __windows__:
         print("Creating dok user...", end="\r")
         uid, _ = get_host_user_group_id()
@@ -338,13 +326,16 @@ def docker_copy_from_command(name, cmd):
             break
     cmd[i+1] = get_container_name(name)
     handle = sb.Popen(cmd, stderr=sb.PIPE, stdout=sb.PIPE, stdin=sb.PIPE)
-    animation = WaitingAnimation("Creating dok")
-    animation.update()
+    # animation = WaitingAnimation("Creating dok")
+    # animation.update()
+    print("Creating dok...")
     is_running = docker_is_container_running(name)
     is_finished = handle.poll()
     while not is_running and is_finished is None:
         sleep(0.2)
-        animation.update()
+        # animation.update()
+        for line in handle.stdout:
+            print(line.decode("utf-8"))
         is_running = docker_is_container_running(name)
         is_finished = handle.poll()
     if is_finished:
@@ -353,7 +344,7 @@ def docker_copy_from_command(name, cmd):
         print("Cleaning up...")
         if docker_container_exists(name): docker_remove_container(name)
         sys.exit(-1)
-    animation.finish("success!")
+    # animation.finish("success!")
     if not __windows__:
         print("Creating dok user...", end="\r")
         uid, _ = get_host_user_group_id()
